@@ -1,6 +1,6 @@
 # About
 This is a project including an implementation of table-based Q-Learning to play the multi-armed bandit game and a gridworld game.<br>
-I did not create the ```Bandit_Sim``` or ```cs7313-mdp``` directories; I only cloned them for use in this project.
+I did not create the ```Bandit-Simulator``` or ```MDP``` directories; I only cloned them for use in this project.
 
 ### Project Notes
 You need to fix Wumpus.<br>
