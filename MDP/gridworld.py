@@ -58,10 +58,10 @@ def _clip(p, max_x, max_y):
     return p
 
 
-_OBS_KEYS = ['pit']
+_OBS_KEYS = ['pit','wall']
 _OBS_REWARDS = {
     'pit': -10.0,
-    'goal': 10.0
+    'goal': 10.0,
 }
 
 _OBJ_KEYS = []
@@ -149,8 +149,9 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         for a in alst:
             new_state = state.clone()
             new_pos = _clip(state.pos + a, self.width, self.height)
-            new_state.x = new_pos[0]
-            new_state.y = new_pos[1]
+            if not self.obs_at('wall', new_pos):
+                new_state.x = new_pos[0]
+                new_state.y = new_pos[1]
             x += [new_state]
 
         return zip(x, probs)
@@ -158,7 +159,7 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
     def add_obstacle(self, kind, pos, reward=None):
         ## default rewards
         if not reward:
-            reward = _OBS_REWARDS[kind]
+            reward = _OBS_REWARDS[kind] if kind in _OBS_REWARDS.keys() else self.move_cost
         self._obs[kind][tuple(pos)] = reward
 
     def display(self):
