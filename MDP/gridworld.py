@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+from MDP.wumpus import WumpusState
 from mdp import FiniteStateMDP, MDPState
 import itertools
 import numpy as np
@@ -28,7 +29,7 @@ _RIGHT = np.array([1, 0])
 
 
 class GridState(MDPState):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, has_gold, has_immunity, width, height):
         self.x = x
         self.y = y
         self.has_gold = has_gold
@@ -133,7 +134,7 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         return tuple(pos) in self._obs[kind].keys()
 
     def move(self, state, action):
-        probs = [0.7, 0.15, 0.15]
+        probs = [0.8, 0.1, 0.1]
 
         if action == Actions.UP:
             alst = [_UP, _LEFT, _RIGHT]
@@ -173,6 +174,6 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
                 l_s = 'S' if p == (0, 0) else ' '
                 l_p = obs_lab(p, 'P', 'pit')
                 l_gl = obs_lab(p, 'X', 'goal')
-                print('|' + l_s+l_w+l_p+l_gl+l_gd+l_i,end='')
+                print('|' + l_s+l_p+l_gl,end='')
             print('|')
 

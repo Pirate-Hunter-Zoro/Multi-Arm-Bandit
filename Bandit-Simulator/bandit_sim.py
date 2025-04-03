@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 import colorsys
 
 class Bandit_Sim:
@@ -69,7 +68,7 @@ class Bandit_Sim:
         fill_colors, edge_colors = self._gen_color_list()
         arms_data = []
         for i in range(self.n_arms):
-            arms_data.append([[bs.pull_arm(i) for _ in range(num_samples)]])
+            arms_data.append([[self.pull_arm(i) for _ in range(num_samples)]])
         full_data = np.array(arms_data).flatten()
         _, bins, _ = plt.hist(full_data, bins=int((self.n_arms*num_samples)**(1/2.5)))
 
