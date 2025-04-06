@@ -15,12 +15,14 @@ mdp.add_goal(50, 50, 5)
 
 x = mdp.initial_state
 t = 0
+states = []
 
 while not mdp.is_terminal(x) and t < 1000:
+    states.append(x)
     print(x)
     a = np.random.choice(list(mdp.actions_at(x)))
     print(a)
     x, _ = mdp.act(x, a)
     t += 1
 
-print(x)
+mdp.display(states)

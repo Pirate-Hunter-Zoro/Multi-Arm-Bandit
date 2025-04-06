@@ -4,6 +4,7 @@ from enum import Enum
 from mdp import MDP
 import itertools
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Actions(Enum):
     UP=1
@@ -91,3 +92,23 @@ class ContinuousGridWorldMDP(MDP):
         next_state = _clip(next_state, self.width, self.height)
         # print(mean, cov)
         return next_state, self.r(state, next_state)
+
+    def display(self, states):
+        """
+        Helper method to display the gridworld after an agent has traversed a certain path through it
+        """
+        _, ax = plt.subplots()
+        ax.set_xlim(0, self.width)
+        ax.set_ylim(0, self.height)
+        ax.set_aspect('equal')
+
+        x = [state[0] for state in states]
+        y = [state[1] for state in states]
+        plt.plot(x, y, 'bo-')
+
+        # Now show all of the obstacles
+        for obs in self._obs:
+            circle = plt.Circle(obs.pos, obs.rad, color='r' if obs.reward < 0 else 'g', alpha=0.5)
+            ax.add_artist(circle)
+
+        plt.savefig('gridworld-c.png')

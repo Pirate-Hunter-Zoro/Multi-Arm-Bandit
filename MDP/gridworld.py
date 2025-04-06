@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 from enum import Enum
-from MDP.wumpus import WumpusState
+
+from matplotlib import pyplot as plt
+from wumpus import WumpusState
 from mdp import FiniteStateMDP, MDPState
 import itertools
 import numpy as np
@@ -160,6 +162,8 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         ## default rewards
         if not reward:
             reward = _OBS_REWARDS[kind] if kind in _OBS_REWARDS.keys() else self.move_cost
+        if kind not in self._obs.keys():
+            self._obs[kind] = {}
         self._obs[kind][tuple(pos)] = reward
 
     def display(self):
@@ -178,3 +182,28 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
                 print('|' + l_s+l_p+l_gl,end='')
             print('|')
 
+    def display(self, states):
+        """
+        Helper method to display the gridworld after an agent has traversed a certain path through it
+        """
+        _, ax = plt.subplots()
+        ax.set_xlim(0, self.width)
+        ax.set_ylim(0, self.height)
+        ax.set_aspect('equal')
+
+        x = [state.x for state in states]
+        y = [state.y for state in states]
+        plt.plot(x, y, 'bo-')
+
+        # Now show all of the obstacles - including walls and pits and goals
+        for obs in self._obs['wall'].keys():
+            circle = plt.Circle(obs, 0.5, color='k', alpha=0.5)
+            ax.add_artist(circle)
+        for obs in self._obs['goal'].keys():
+            circle = plt.Circle(obs, 0.5, color='g', alpha=0.5)
+            ax.add_artist(circle)
+        for obs in self._obs['pit'].keys():
+            circle = plt.Circle(obs, 0.5, color='r', alpha=0.5)
+            ax.add_artist(circle)
+
+        plt.savefig('gridworld.png')

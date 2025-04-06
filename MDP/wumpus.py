@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+
+from matplotlib import pyplot as plt
 from mdp import FiniteStateMDP, MDPState
 import itertools
 import numpy as np
@@ -209,3 +211,49 @@ class WumpusMDP(FiniteStateMDP):
                 l_i = obj_lab(p, 'I', 'immune')
                 print('|' + l_s+l_w+l_p+l_gl+l_gd+l_i,end='')
             print('|')
+
+    def display(self, states):
+        """
+        Helper method to display the gridworld after an agent has traversed a certain path through it
+        """
+        _, ax = plt.subplots()
+        ax.set_xlim(0, self.width)
+        ax.set_ylim(0, self.height)
+        ax.set_aspect('equal')
+
+        gold_and_immune_posns = [(state.x, state.y) for state in states if state.has_gold and state.has_immunity]
+        gold_posns = [(state.x, state.y) for state in states if state.has_gold and not state.has_immunity]
+        immune_posns = [(state.x, state.y) for state in states if not state.has_gold and state.has_immunity]
+        trash_posns = [(state.x, state.y) for state in states if not state.has_gold and not state.has_immunity]
+        ax.scatter(x=[p[0] for p in gold_and_immune_posns], y=[p[1] for p in gold_and_immune_posns], marker='x', color='green', alpha=0.5, label='Agent - G&I')
+        ax.scatter(x=[p[0] for p in gold_posns], y=[p[1] for p in gold_posns], marker='x', color='yellow', alpha=0.5, label='Agent - G')
+        ax.scatter(x=[p[0] for p in immune_posns], y=[p[1] for p in immune_posns], marker='x', color='blue', alpha=0.5, label='Agent - I')
+        ax.scatter(x=[p[0] for p in trash_posns], y=[p[1] for p in trash_posns], marker='x', color='black', alpha=0.5, label='Agent - T')
+
+        # Now show all of the obstacles - including walls and pits and goals
+        obstacle_types = ['wall', 'goal', 'pit', 'gold', 'immune', 'wumpus']
+        for obs_type in obstacle_types:
+            if obs_type not in self._obs.keys():
+                self._obs[obs_type] = {}
+
+        wall_posns = self._obs['wall'].keys()
+        goal_posns = self._obs['goal'].keys()
+        pit_posns = self._obs['pit'].keys()
+        gold_posns = self._obj['gold']
+        immune_posns = self._obj['immune']
+        wumpus_posns = self._obs['wumpus'].keys()
+
+        ax.scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
+        ax.scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
+        ax.scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
+        ax.scatter(x=[p[0] for p in gold_posns], y=[p[1] for p in gold_posns], color='gold', alpha=0.5, label='Gold')
+        ax.scatter(x=[p[0] for p in immune_posns], y=[p[1] for p in immune_posns], color='cyan', alpha=0.5, label='Immunity')
+        ax.scatter(x=[p[0] for p in wumpus_posns], y=[p[1] for p in wumpus_posns], color='purple', alpha=0.5, label='Wumpus')
+        
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        
+        ax.set_title('Wumpus World')
+        ax.set_xlabel('Column')
+        ax.set_ylabel('Row')
+
+        plt.savefig('wumpus.png')
