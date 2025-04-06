@@ -64,3 +64,10 @@ class ModifiedWumpusMDP(WumpusMDP):
 
         ## otherwise return the move cost
         return self.move_cost
+    
+    def move(self, state, action):
+        state, probs = super().move(state, action)
+        # If the player has gold, there is a chance they will drop it
+        if state.has_gold and random.uniform(0,1) < self._drop_prob:
+            state.has_gold = False
+        return state, probs
