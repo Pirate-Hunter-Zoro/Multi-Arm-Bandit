@@ -61,6 +61,10 @@ class FiniteStateMDP:
     def p(self, state, action):
         """Return an iterable of state-probability pairs when performing action in state."""
         raise NotImplementedError
+    
+    def actions_at(self, state):
+        """Return iterable of all actions available at state."""
+        raise NotImplementedError
 
     def act(self, state, action):
         x, p = zip(*self.p(state, action))

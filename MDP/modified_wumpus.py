@@ -14,6 +14,28 @@ class ModifiedWumpusState(WumpusState):
     def clone(self):
         return ModifiedWumpusState(self.x, self.y, self.has_gold, self.has_immunity, self._width, self._height)
 
+    def next_to_pit(self, obs: dict[str, dict[tuple[int,int], float]]) -> bool:
+        if 'pit' in obs.keys():
+            # Look left, right, up, and down
+            left_tuple = (self.x - 1, self.y)
+            right_tuple = (self.x + 1, self.y)
+            up_tuple = (self.x, self.y + 1)
+            down_tuple = (self.x, self.y - 1)
+            if (left_tuple in obs['pit']) or (right_tuple in obs['pit']) or (up_tuple in obs['pit']) or (down_tuple in obs['pit']):
+                return True
+        return False
+
+    def next_to_wumpus(self, obs: dict[str, dict[tuple[int,int], float]]) -> bool:
+        if 'wumpus' in obs.keys():
+            # Look left, right, up, and down
+            left_tuple = (self.x - 1, self.y)
+            right_tuple = (self.x + 1, self.y)
+            up_tuple = (self.x, self.y + 1)
+            down_tuple = (self.x, self.y - 1)
+            if (left_tuple in obs['wumpus']) or (right_tuple in obs['wumpus']) or (up_tuple in obs['wumpus']) or (down_tuple in obs['wumpus']):
+                return True
+        return False
+
     def __repr__(self):
         return 'pos: ({x}, {y}) has_gold: {has_gold} has_immunity: {has_immunity}'.format(**self.__dict__)
 
@@ -26,6 +48,7 @@ class ModifiedWumpusMDP(WumpusMDP):
     def __init__(self, w, h, move_cost=-0.1, gold_reward=10):
         super().__init__(w, h, move_cost, gold_reward)
         self.pit_death_probs = {}
+        self.adj_obs_living_cost = 2 * self.move_cost
 
     def add_obstacle(self, kind, pos, reward=None):
         # Handle parent obstacle addition, but we also need to 
@@ -61,6 +84,10 @@ class ModifiedWumpusMDP(WumpusMDP):
         ## if the player has gold and is dropping it, return the negative gold reward
         if s1.has_gold and not s2.has_gold:
             return -self.gold_reward
+
+        ## if the player is next to a pit/wumpus, return the higher step cost
+        if s2.next_to_pit(self._obs) or s2.next_to_wumpus(self._obs):
+            return self.adj_obs_living_cost
 
         ## otherwise return the move cost
         return self.move_cost
