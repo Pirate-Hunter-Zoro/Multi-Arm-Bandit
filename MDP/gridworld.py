@@ -183,18 +183,13 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
                 print('|' + l_s+l_p+l_gl,end='')
             print('|')
 
-    def display(self, states):
+    def display(self, states, policy_algorithm=None):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        _, ax = plt.subplots()
-        ax.set_xlim(0, self.width)
-        ax.set_ylim(0, self.height)
-        ax.set_aspect('equal')
+        _, axes = plt.subplots(len(states), 1, figsize=(self.width, self.height*len(states)), dpi=100)
 
-        posns = [(state.x, state.y) for state in states]
-        ax.scatter(x=[p[0] for p in posns], y=[p[1] for p in posns], marker='x', color='green', alpha=0.5, label='Agent')
-
+        # Grab the wall and pit positions
         # Now show all of the obstacles - including walls and pits and goals
         obstacle_types = ['wall', 'goal', 'pit']
         for obs_type in obstacle_types:
@@ -204,15 +199,27 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         wall_posns = self._obs['wall'].keys()
         goal_posns = self._obs['goal'].keys()
         pit_posns = self._obs['pit'].keys()
+        posns = [(state.x, state.y) for state in states]
 
-        ax.scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
-        ax.scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
-        ax.scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
-        
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-        
-        ax.set_title('Grid World')
-        ax.set_xlabel('Column')
-        ax.set_ylabel('Row')
+        # If only one plot, axes won't be a list
+        if len(states) == 1:
+            axes = [axes]
 
-        plt.savefig('Results/grid-world.png')
+        for i in range(len(states)):
+            axes[i].set_xlim(0, self.width)
+            axes[i].set_ylim(0, self.height)
+            axes[i].set_aspect('equal')
+            
+            axes[i].set_title(f"Step {i}")
+            axes[i].scatter(x=[posns[i][0]], y=[posns[i][1]], marker='x', color='green', alpha=0.5, label='Agent')
+            axes[i].scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
+            axes[i].scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
+            axes[i].scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
+            
+            axes[i].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+            axes[i].set_xlabel('Column')
+            axes[i].set_ylabel('Row')
+           
+        plt.tight_layout()
+        plt.savefig('Results/grid-world.png' if policy_algorithm is None else f'Results/grid-world-{policy_algorithm}.png')
+        plt.close()

@@ -70,3 +70,7 @@ class FiniteStateMDP:
         x, p = zip(*self.p(state, action))
         s2 = np.random.choice(x, p=p)
         return s2, self.r(state, s2)
+    
+    def display(self, states, policy_algorithm=None):
+        """Display the MDP."""
+        raise NotImplementedError

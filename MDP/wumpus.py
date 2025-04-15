@@ -58,8 +58,8 @@ class WumpusState(MDPState):
 
 
 def _clip(p, max_x, max_y):
-    p = np.array([max(min(p[0], max_x), 1),
-                  max(min(p[1], max_y), 1)])
+    p = np.array([max(min(p[0], max_x), 0),
+                  max(min(p[1], max_y), 0)])
     return p
 
 
@@ -168,7 +168,7 @@ class WumpusMDP(FiniteStateMDP):
         x = []
         for a in alst:
             new_state = state.clone()
-            new_pos = _clip(state.pos + a, self.width, self.height)
+            new_pos = _clip(state.pos + a, self.width-1, self.height-1)
             new_state.x = new_pos[0]
             new_state.y = new_pos[1]
             x += [new_state]
@@ -212,23 +212,11 @@ class WumpusMDP(FiniteStateMDP):
                 print('|' + l_s+l_w+l_p+l_gl+l_gd+l_i,end='')
             print('|')
 
-    def display(self, states):
+    def display(self, states, policy_algorithm=None):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        _, ax = plt.subplots()
-        ax.set_xlim(0, self.width)
-        ax.set_ylim(0, self.height)
-        ax.set_aspect('equal')
-
-        gold_and_immune_posns = [(state.x, state.y) for state in states if state.has_gold and state.has_immunity]
-        gold_posns = [(state.x, state.y) for state in states if state.has_gold and not state.has_immunity]
-        immune_posns = [(state.x, state.y) for state in states if not state.has_gold and state.has_immunity]
-        trash_posns = [(state.x, state.y) for state in states if not state.has_gold and not state.has_immunity]
-        ax.scatter(x=[p[0] for p in gold_and_immune_posns], y=[p[1] for p in gold_and_immune_posns], marker='x', color='green', alpha=0.5, label='Agent - G&I')
-        ax.scatter(x=[p[0] for p in gold_posns], y=[p[1] for p in gold_posns], marker='x', color='yellow', alpha=0.5, label='Agent - G')
-        ax.scatter(x=[p[0] for p in immune_posns], y=[p[1] for p in immune_posns], marker='x', color='blue', alpha=0.5, label='Agent - I')
-        ax.scatter(x=[p[0] for p in trash_posns], y=[p[1] for p in trash_posns], marker='x', color='black', alpha=0.5, label='Agent - T')
+        _, axes = plt.subplots(len(states), 1, figsize=(self.width, self.height*len(states)), dpi=100)
 
         # Now show all of the obstacles - including walls and pits and goals
         obstacle_types = ['wall', 'goal', 'pit', 'gold', 'immune', 'wumpus']
@@ -242,18 +230,32 @@ class WumpusMDP(FiniteStateMDP):
         gold_posns = self._obj['gold']
         immune_posns = self._obj['immune']
         wumpus_posns = self._obs['wumpus'].keys()
+        posns = [(state.x, state.y) for state in states]
 
-        ax.scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
-        ax.scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
-        ax.scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
-        ax.scatter(x=[p[0] for p in gold_posns], y=[p[1] for p in gold_posns], color='gold', alpha=0.5, label='Gold')
-        ax.scatter(x=[p[0] for p in immune_posns], y=[p[1] for p in immune_posns], color='cyan', alpha=0.5, label='Immunity')
-        ax.scatter(x=[p[0] for p in wumpus_posns], y=[p[1] for p in wumpus_posns], color='purple', alpha=0.5, label='Wumpus')
-        
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-        
-        ax.set_title('Wumpus World')
-        ax.set_xlabel('Column')
-        ax.set_ylabel('Row')
+        # If only one plot, axes won't be a list
+        if len(states) == 1:
+            axes = [axes]
 
-        plt.savefig('wumpus.png')
+        for i in range(len(states)):
+            axes[i].set_xlim(0, self.width)
+            axes[i].set_ylim(0, self.height)
+            axes[i].set_aspect('equal')
+            
+            axes[i].set_title(f"Step {i}")
+            agent_color = "green" if (states[i].has_gold and states[i].has_immunity) else ("blue" if states[i].has_immunity else ("yellow" if states[i].has_gold else "black"))
+            agent_label = "Agent - G&I" if (states[i].has_gold and states[i].has_immunity) else ("Agent - I" if states[i].has_immunity else ("Agent - G" if states[i].has_gold else "Agent - T"))
+            axes[i].scatter(x=[posns[i][0]], y=[posns[i][1]], marker='x', color=agent_color, alpha=0.5, label=agent_label)
+            axes[i].scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
+            axes[i].scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
+            axes[i].scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
+            axes[i].scatter(x=[p[0] for p in gold_posns], y=[p[1] for p in gold_posns], color='gold', alpha=0.5, label='Gold')
+            axes[i].scatter(x=[p[0] for p in immune_posns], y=[p[1] for p in immune_posns], color='cyan', alpha=0.5, label='Immunity')
+            axes[i].scatter(x=[p[0] for p in wumpus_posns], y=[p[1] for p in wumpus_posns], color='purple', alpha=0.5, label='Wumpus')
+            
+            axes[i].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+            axes[i].set_xlabel('Column')
+            axes[i].set_ylabel('Row')
+           
+        plt.tight_layout()
+        plt.savefig('Results/wumpus.png' if policy_algorithm is None else f'Results/wumpus-{policy_algorithm}.png')
+        plt.close()
