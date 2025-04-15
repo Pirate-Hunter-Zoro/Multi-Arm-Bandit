@@ -3,8 +3,7 @@
 from enum import Enum
 
 from matplotlib import pyplot as plt
-from wumpus import WumpusState
-from mdp import FiniteStateMDP, MDPState
+from MDP.mdp import FiniteStateMDP, MDPState
 import itertools
 import numpy as np
 
@@ -40,7 +39,7 @@ class GridState(MDPState):
         self._height = height
 
     def clone(self):
-        return GridState(self.x, self.y, self._width, self._height)
+        return GridState(self.x, self.y, self.has_gold, self.has_immunity, self._width, self._height)
 
     @property
     def pos(self):
@@ -48,15 +47,15 @@ class GridState(MDPState):
 
     @property
     def i(self):
-        return self._height * self.x + self.y
+        return int(self._height * self.x + self.y)
 
     def __repr__(self):
         return '({x}, {y})'.format(**self.__dict__)
 
 
 def _clip(p, max_x, max_y):
-    p = np.array([max(min(p[0], max_x), 1),
-                  max(min(p[1], max_y), 1)])
+    p = np.array([max(min(p[0], max_x), 0),
+                  max(min(p[1], max_y), 0)])
     return p
 
 
@@ -88,8 +87,10 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
 
     @property
     def states(self):
-        return itertools.product(
+        as_tuples = itertools.product(
             range(self.width), range(self.height), (True, False), (True, False))
+        as_states = [GridState(x, y, has_gold, has_immunity, self.width, self.height) for x, y, has_gold, has_immunity in as_tuples]
+        return as_states
 
     @property
     def actions(self):
@@ -97,7 +98,7 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
 
     @property
     def initial_state(self):
-        return WumpusState(0, 0, False, False, self.width, self.height)
+        return GridState(0, 0, False, False, self.width, self.height)
 
     def actions_at(self, state):
         a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
@@ -150,7 +151,7 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         x = []
         for a in alst:
             new_state = state.clone()
-            new_pos = _clip(state.pos + a, self.width, self.height)
+            new_pos = _clip(state.pos + a, self.width-1, self.height-1)
             if not self.obs_at('wall', new_pos):
                 new_state.x = new_pos[0]
                 new_state.y = new_pos[1]
@@ -191,19 +192,27 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         ax.set_ylim(0, self.height)
         ax.set_aspect('equal')
 
-        x = [state.x for state in states]
-        y = [state.y for state in states]
-        plt.plot(x, y, 'bo-')
+        posns = [(state.x, state.y) for state in states]
+        ax.scatter(x=[p[0] for p in posns], y=[p[1] for p in posns], marker='x', color='green', alpha=0.5, label='Agent')
 
         # Now show all of the obstacles - including walls and pits and goals
-        for obs in self._obs['wall'].keys():
-            circle = plt.Circle(obs, 0.5, color='k', alpha=0.5)
-            ax.add_artist(circle)
-        for obs in self._obs['goal'].keys():
-            circle = plt.Circle(obs, 0.5, color='g', alpha=0.5)
-            ax.add_artist(circle)
-        for obs in self._obs['pit'].keys():
-            circle = plt.Circle(obs, 0.5, color='r', alpha=0.5)
-            ax.add_artist(circle)
+        obstacle_types = ['wall', 'goal', 'pit']
+        for obs_type in obstacle_types:
+            if obs_type not in self._obs.keys():
+                self._obs[obs_type] = {}
 
-        plt.savefig('gridworld.png')
+        wall_posns = self._obs['wall'].keys()
+        goal_posns = self._obs['goal'].keys()
+        pit_posns = self._obs['pit'].keys()
+
+        ax.scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')
+        ax.scatter(x=[p[0] for p in goal_posns], y=[p[1] for p in goal_posns], color='orange', alpha=0.5, label='Goal')
+        ax.scatter(x=[p[0] for p in pit_posns], y=[p[1] for p in pit_posns], color='gray', alpha=0.5, label='Pit')
+        
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        
+        ax.set_title('Grid World')
+        ax.set_xlabel('Column')
+        ax.set_ylabel('Row')
+
+        plt.savefig('Results/grid-world.png')

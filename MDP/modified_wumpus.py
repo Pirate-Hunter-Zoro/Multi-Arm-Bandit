@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import random
-from wumpus import WumpusMDP, WumpusState
+from MDP.wumpus import WumpusMDP, WumpusState
 
 class ModifiedWumpusState(WumpusState):
     def __init__(self, x, y, has_gold, has_immunity, width, height):

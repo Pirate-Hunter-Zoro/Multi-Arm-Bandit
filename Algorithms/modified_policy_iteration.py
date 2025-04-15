@@ -1,7 +1,7 @@
 import random
 
 
-def modified_policy_iteration(env, gamma=0.9, theta=1e-6):
+def modified_policy_iteration(env, gamma=0.9):
     """
     Perform modified policy iteration algorithm to find the optimal policy and value function.
 

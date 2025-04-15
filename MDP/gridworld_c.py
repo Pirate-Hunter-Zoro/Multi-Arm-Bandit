@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import Enum
-from mdp import MDP
-import itertools
+from MDP.mdp import MDP
 import numpy as np
 import matplotlib.pyplot as plt
 

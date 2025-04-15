@@ -3,7 +3,7 @@
 from enum import Enum
 
 from matplotlib import pyplot as plt
-from mdp import FiniteStateMDP, MDPState
+from MDP.mdp import FiniteStateMDP, MDPState
 import itertools
 import numpy as np
 
