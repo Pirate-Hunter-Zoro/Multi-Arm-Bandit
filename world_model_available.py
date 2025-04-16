@@ -41,6 +41,8 @@ if __name__ == '__main__':
 
     policy = value_iteration(second_env)
     for t in range(1000):
+        assert not second_env.is_terminal(x), "The agent has reached a terminal state"
+        assert policy[x.i] is not None, "The state has no corresponding action to follow"
         x, _ = second_env.act(x, policy[x.i])
         states.append(x)
         if second_env.is_terminal(x):

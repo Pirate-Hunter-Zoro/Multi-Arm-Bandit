@@ -32,6 +32,18 @@ _LEFT = np.array([-1, 0])
 _RIGHT = np.array([1, 0])
 
 
+def cantor_pair(x, y):
+    return (x + y) * (x + y + 1) // 2 + y
+
+def unique_int(a, b, c, d):
+    return cantor_pair(
+            cantor_pair(
+                cantor_pair(a, b),
+                c
+            ),
+            d
+        )
+
 class WumpusState(MDPState):
     def __init__(self, x, y, has_gold, has_immunity, width, height):
         self.x = x
@@ -50,9 +62,9 @@ class WumpusState(MDPState):
 
     @property
     def i(self):
-        g = 2 if self.has_gold else 0
+        g = 2 if self.has_gold else 1
         i = 1 if self.has_immunity else 0
-        return (self._height * self.x + self.y) * (g+i)
+        return unique_int(self.x, self.y, g, i)
 
     def __repr__(self):
         return 'pos: ({x}, {y}) has_gold: {has_gold} has_immunity: {has_immunity}'.format(**self.__dict__)
@@ -110,11 +122,13 @@ class WumpusMDP(FiniteStateMDP):
         a = []
         if not self.is_terminal(state):
             a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
-            if self.obj_at('gold', state.pos) or self.obj_at('immune', state.pos):
+            if (self.obj_at('gold', state.pos) and not state.has_gold) or (self.obj_at('immune', state.pos) and not state.has_immunity):
+                ## if we can pick up gold or immunity, add that action
                 a += [Actions.PICK_UP]
         return a
 
     def p(self, state, action):
+        assert not self.is_terminal(state), "Cannot take action in terminal state"
         if action in [Actions.PICK_UP]:
             return self.pick_up(state)
         elif action in [Actions.UP, Actions.DOWN, Actions.LEFT, Actions.RIGHT]:
@@ -180,9 +194,12 @@ class WumpusMDP(FiniteStateMDP):
 
     def pick_up(self, state):
         new_state = state.clone()
+        assert self.obj_at('gold', state.pos) or self.obj_at('immune', state.pos), "Cannot pick up object that doesn't exist"
         if self.obj_at('gold', state.pos):
+            assert not state.has_gold, "Cannot pick up gold when already holding it"
             new_state.has_gold = True
         if self.obj_at('immune', state.pos):
+            assert not state.has_immunity, "Cannot pick up immunity when already holding it"
             new_state.has_immunity = True
         return [(new_state, 1.0)]
 

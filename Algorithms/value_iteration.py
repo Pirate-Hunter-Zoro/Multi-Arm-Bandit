@@ -30,7 +30,7 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
         π(s) ← argmax_a ∑_s',r [ P(s', r | s, a) * (r + γ * V(s')) ]
     """
     # Calling .i on a state returns a unique (hashable) index associated with it
-    V = {s.i: 0 if not env.is_terminal(s) else env.r(s,s) for s in env.states}
+    V = {s.i: float('-inf') if not env.is_terminal(s) else 0 for s in env.states}
     policy = {s.i: None for s in env.states}
 
     while True:
@@ -43,18 +43,20 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
             # Update value function based on the current best action
             for action in actions:
                 s_next, reward = env.act(s, action)
+                if reward + gamma * V_copy[s_next.i] > 20:
+                    s_next, reward = env.act(s, action)
                 # Calculate the value of taking this action and use it to update the record for V(s)
                 V[s.i] = max(V[s.i], reward + gamma * V_copy[s_next.i])  # Bellman update
             delta = max(delta, abs(v - V[s.i]))
 
-        # If no state changed by more than theta, we can stop
+        # If no state value changed by more than theta, we can stop
         if delta < theta:
             break
 
     for s in env.states:
         # Choose the action that maximizes the expected value function
         actions = env.actions_at(s)
-        assert len(actions)>0, "No actions available for state {}".format(s)
+        assert len(actions)>0 or env.is_terminal(s), "No actions available for non-terminal state state {}".format(s)
         best_action = None
         best_value = float('-inf')
         for action in actions:
@@ -64,7 +66,7 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
                 best_value = value
                 best_action = action
         # Update the policy for state s
-        assert best_action is not None, "No best action found for state {}".format(s)
+        assert best_action is not None or env.is_terminal(s), "No best action found for non-terminal state {}".format(s)
         policy[s.i] = best_action
 
     return policy
