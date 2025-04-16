@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+import math
 
 from matplotlib import pyplot as plt
 from MDP.mdp import FiniteStateMDP, MDPState
@@ -106,14 +107,16 @@ class WumpusMDP(FiniteStateMDP):
         return WumpusState(0, 0, False, False, self.width, self.height)
 
     def actions_at(self, state):
-        a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
-        if self.obj_at('gold', state.pos) or self.obj_at('immune', state.pos):
-            a += [Actions.PICK_UP]
+        a = []
+        if not self.is_terminal(state):
+            a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
+            if self.obj_at('gold', state.pos) or self.obj_at('immune', state.pos):
+                a += [Actions.PICK_UP]
         return a
 
     def p(self, state, action):
         if action in [Actions.PICK_UP]:
-            return self.pick_up(state, action)
+            return self.pick_up(state)
         elif action in [Actions.UP, Actions.DOWN, Actions.LEFT, Actions.RIGHT]:
             return self.move(state, action)
         else:
@@ -175,7 +178,7 @@ class WumpusMDP(FiniteStateMDP):
 
         return zip(x, probs)
 
-    def pick_up(self, state, action):
+    def pick_up(self, state):
         new_state = state.clone()
         if self.obj_at('gold', state.pos):
             new_state.has_gold = True
@@ -216,8 +219,13 @@ class WumpusMDP(FiniteStateMDP):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        _, axes = plt.subplots(len(states), 1, figsize=(self.width, self.height*len(states)), dpi=100)
-
+        cols = 10
+        rows = math.ceil(len(states) / cols)
+        
+        plt.grid(True)
+        fig, axes = plt.subplots(rows, cols, figsize=(self.width * cols, self.height * rows), dpi=100)
+        axes = axes.flatten()  # Flatten to 1D for easy indexing
+        
         # Now show all of the obstacles - including walls and pits and goals
         obstacle_types = ['wall', 'goal', 'pit', 'gold', 'immune', 'wumpus']
         for obs_type in obstacle_types:
@@ -256,6 +264,6 @@ class WumpusMDP(FiniteStateMDP):
             axes[i].set_xlabel('Column')
             axes[i].set_ylabel('Row')
            
-        plt.tight_layout()
-        plt.savefig('Results/wumpus.png' if policy_algorithm is None else f'Results/wumpus-{policy_algorithm}.png')
-        plt.close()
+        fig.tight_layout()
+        fig.savefig('Results/wumpus.png' if policy_algorithm is None else f'Results/wumpus-{policy_algorithm}.png')
+        plt.close(fig)

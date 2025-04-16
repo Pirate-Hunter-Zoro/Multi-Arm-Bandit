@@ -30,11 +30,12 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
         π(s) ← argmax_a ∑_s',r [ P(s', r | s, a) * (r + γ * V(s')) ]
     """
     # Calling .i on a state returns a unique (hashable) index associated with it
-    V = {s.i: 0 for s in env.states}
+    V = {s.i: 0 if not env.is_terminal(s) else env.r(s,s) for s in env.states}
     policy = {s.i: None for s in env.states}
 
     while True:
         delta = 0
+        V_copy = V.copy()  # Copy the current value function for comparison
         for s in env.states:
             v = V[s.i]
             # What are the possible actions to take?
@@ -43,7 +44,7 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
             for action in actions:
                 s_next, reward = env.act(s, action)
                 # Calculate the value of taking this action and use it to update the record for V(s)
-                V[s.i] = max(V[s.i], reward + gamma * V[s_next.i])  # Bellman update
+                V[s.i] = max(V[s.i], reward + gamma * V_copy[s_next.i])  # Bellman update
             delta = max(delta, abs(v - V[s.i]))
 
         # If no state changed by more than theta, we can stop

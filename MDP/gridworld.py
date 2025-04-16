@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+import math
 
 from matplotlib import pyplot as plt
 from MDP.mdp import FiniteStateMDP, MDPState
@@ -30,16 +31,14 @@ _RIGHT = np.array([1, 0])
 
 
 class GridState(MDPState):
-    def __init__(self, x, y, has_gold, has_immunity, width, height):
+    def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
-        self.has_gold = has_gold
-        self.has_immunity = has_immunity
         self._width = width
         self._height = height
 
     def clone(self):
-        return GridState(self.x, self.y, self.has_gold, self.has_immunity, self._width, self._height)
+        return GridState(self.x, self.y, self._width, self._height)
 
     @property
     def pos(self):
@@ -87,9 +86,8 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
 
     @property
     def states(self):
-        as_tuples = itertools.product(
-            range(self.width), range(self.height), (True, False), (True, False))
-        as_states = [GridState(x, y, has_gold, has_immunity, self.width, self.height) for x, y, has_gold, has_immunity in as_tuples]
+        as_tuples = itertools.product(range(self.width), range(self.height))
+        as_states = [GridState(x, y, self.width, self.height) for x, y in as_tuples]
         return as_states
 
     @property
@@ -98,10 +96,12 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
 
     @property
     def initial_state(self):
-        return GridState(0, 0, False, False, self.width, self.height)
+        return GridState(0, 0, self.width, self.height)
 
     def actions_at(self, state):
-        a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
+        a = []
+        if not self.is_terminal(state):
+            a = [Actions.LEFT, Actions.RIGHT, Actions.UP, Actions.DOWN]
         return a
 
     def p(self, state, action):
@@ -187,7 +187,12 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        _, axes = plt.subplots(len(states), 1, figsize=(self.width, self.height*len(states)), dpi=100)
+        cols = 5
+        rows = math.ceil(len(states) / cols)
+        
+        plt.grid(True)
+        _, axes = plt.subplots(rows, cols, figsize=(self.width * cols, self.height * rows), dpi=100)
+        axes = axes.flatten()
 
         # Grab the wall and pit positions
         # Now show all of the obstacles - including walls and pits and goals

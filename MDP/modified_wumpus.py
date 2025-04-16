@@ -68,6 +68,10 @@ class ModifiedWumpusMDP(WumpusMDP):
                 return random.uniform(0,1) < self.pit_death_probs[tuple(state.pos)]
 
     def r(self, s1, s2):
+        ## if s1 is terminal, return whatever reward would have been associated with it
+        if self.is_terminal(s1):
+            return self.r(s1, s1)
+
         ## if it's the pit, return the default pit bad reward
         if self.obs_at('pit', s2.pos):
             return self._obs['pit'][tuple(s2.pos)]
