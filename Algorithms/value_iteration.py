@@ -43,8 +43,6 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
             # Update value function based on the current best action
             for action in actions:
                 s_next, reward = env.act(s, action)
-                if reward + gamma * V_copy[s_next.i] > 20:
-                    s_next, reward = env.act(s, action)
                 # Calculate the value of taking this action and use it to update the record for V(s)
                 V[s.i] = max(V[s.i], reward + gamma * V_copy[s_next.i])  # Bellman update
             delta = max(delta, abs(v - V[s.i]))
