@@ -171,6 +171,7 @@ class WumpusMDP(FiniteStateMDP):
         return tuple(pos) in self._obj[kind]
 
     def move(self, state, action):
+        assert action in [Actions.UP, Actions.DOWN, Actions.LEFT, Actions.RIGHT], "Invalid action specified: {}".format(action)
         probs = [0.8, 0.1, 0.1]
 
         if action == Actions.UP:
@@ -236,7 +237,7 @@ class WumpusMDP(FiniteStateMDP):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        cols = 10
+        cols = 1
         rows = math.ceil(len(states) / cols)
         
         plt.grid(True)
@@ -267,7 +268,7 @@ class WumpusMDP(FiniteStateMDP):
             axes[i].set_aspect('equal')
             
             axes[i].set_title(f"Step {i}")
-            agent_color = "green" if (states[i].has_gold and states[i].has_immunity) else ("blue" if states[i].has_immunity else ("yellow" if states[i].has_gold else "black"))
+            agent_color = "black"
             agent_label = "Agent - G&I" if (states[i].has_gold and states[i].has_immunity) else ("Agent - I" if states[i].has_immunity else ("Agent - G" if states[i].has_gold else "Agent - T"))
             axes[i].scatter(x=[posns[i][0]], y=[posns[i][1]], marker='x', color=agent_color, alpha=0.5, label=agent_label)
             axes[i].scatter(x=[p[0] for p in wall_posns], y=[p[1] for p in wall_posns], color='indigo', alpha=0.5, label='Wall')

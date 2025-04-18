@@ -187,7 +187,7 @@ class DiscreteGridWorldMDP(FiniteStateMDP):
         """
         Helper method to display the gridworld after an agent has traversed a certain path through it
         """
-        cols = 5
+        cols = 1
         rows = math.ceil(len(states) / cols)
         
         plt.grid(True)
