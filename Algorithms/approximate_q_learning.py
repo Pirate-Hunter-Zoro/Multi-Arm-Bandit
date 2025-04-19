@@ -23,7 +23,8 @@ def approximate_q_learning(env, num_episodes=1000, alpha=0.1, gamma=0.9, epsilon
     # Initialize weights for function approximation
     theta = np.zeros(len(env.feature_vector(env.initial_state, list(env.actions)[0])))  # Initialize theta to zeros
 
-    epsilon_decay = 0.99
+    epsilon_decay = 0.995
+    epsilon_min = 0.1
 
     for _ in range(num_episodes):
         state = env.initial_state
@@ -46,23 +47,33 @@ def approximate_q_learning(env, num_episodes=1000, alpha=0.1, gamma=0.9, epsilon
             # Compute max Q-value for next state (using greedy policy)
             next_features = [env.feature_vector(next_state, a) for a in env.actions_at(next_state)]
             next_q_values = [np.dot(theta, f) for f in next_features]
+            assert all(not np.any(np.isnan(q)) and not np.any(np.isinf(q)) for q in next_q_values), f"Invalid next Q-values: {next_q_values}"
             max_q_next = max(next_q_values, default=0)
+
+            assert not np.any(np.isnan(reward)) and not np.any(np.isinf(reward)), f"Invalid reward: {reward}"
+            assert not np.any(np.isnan(max_q_next)) and not np.any(np.isinf(max_q_next)), f"Invalid max_q_next: {max_q_next}"
+            q_value = np.dot(theta, feature_vec)
+            assert not np.any(np.isnan(q_value)) and not np.any(np.isinf(q_value)), f"Invalid Q-value: {q_value}"
 
             # Compute TD error
             td_error = reward + gamma * max_q_next - np.dot(theta, feature_vec)
+            td_error = np.clip(td_error, -1e10, 1e10)  # Prevent extreme TD errors
+
+            assert not np.any(np.isnan(td_error)) and not np.any(np.isinf(td_error)), f"Invalid TD error: {td_error}"
 
             # Update weights using gradient descent
             theta += alpha * td_error * feature_vec
+            theta = np.clip(theta, -1e10, 1e10)  # Prevent large weight values
 
             state = next_state
             done = env.is_terminal(state)
 
         # Decay epsilon to encourage exploitation
-        epsilon = max(0.1, epsilon * epsilon_decay)
+        epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
     return LinearQTablePolicy(theta, env)
 
-def run_approximate_q_learning(env, num_episodes=10000, env_name=''):
+def run_approximate_q_learning(env, num_episodes=1000, env_name=''):
     x = env.initial_state
     states = [x]
     policy = approximate_q_learning(env)

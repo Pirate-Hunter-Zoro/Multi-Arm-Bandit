@@ -19,7 +19,7 @@ class QTablePolicy:
             action = random.choice(self.env.actions)
         return action
 
-def q_learning(env, num_episodes=10000, alpha=1, gamma=0.9, epsilon=1):
+def q_learning(env, num_episodes=1000, alpha=1, gamma=0.9, epsilon=1):
     """
     Initialize Q(s, a) arbitrarily for all states s and actions a
     Set hyperparameters: learning rate α ∈ (0,1], discount factor γ ∈ [0,1], and exploration rate ε ∈ [0,1]

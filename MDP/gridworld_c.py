@@ -43,7 +43,7 @@ class Obstacle:
 
 
 class ContinuousGridWorldMDP(MDP):
-    def __init__(self, w, h, move_cost=-0.1):
+    def __init__(self, w, h, move_cost=-0.1, default_start=None):
         self.width = w
         self.height = h
         self.move_cost = move_cost
@@ -51,6 +51,7 @@ class ContinuousGridWorldMDP(MDP):
         self.goal_y = None
         self.walls = []
         self._obs = []
+        self.start_pos = default_start if default_start is not None else [0.0, 0.0]
 
     def add_pit(self, x, y, radius, cost=10.0):
         self._obs += [Obstacle(x, y, radius, -cost)]
@@ -95,7 +96,7 @@ class ContinuousGridWorldMDP(MDP):
     @property
     def initial_state(self):
         """Returns initial state (assumed determinstic)."""
-        return np.array([0,0])
+        return np.array(self.start_pos)
 
     def _in_obs(self, state):
         for obs in self._obs:
@@ -109,6 +110,10 @@ class ContinuousGridWorldMDP(MDP):
         goal_pos = np.array([self.goal_x, self.goal_y])  # Set your goal coordinates here
         dist_s2_goal = np.linalg.norm(s2 - goal_pos)
         dist_s1_goal = np.linalg.norm(s1 - goal_pos)
+
+        # Terminal goal condition
+        if dist_s2_goal < 1.0:
+            return 20.0  # Big reward for reaching the goal
 
         # Reward for being closer to the goal
         reward = -0.1  # Base cost for moving
@@ -157,6 +162,48 @@ class ContinuousGridWorldMDP(MDP):
         distance = self.compute_distance(agent_pos)
         return distance / max_distance  # Normalized distance in the range [0, 1]
 
+    def normalize_distance_to_nearest_pit(self, agent_pos):
+        """
+        Computes the normalized distance to the nearest pit.
+        The distance is normalized to be in the range [0, 1].
+        """
+        if not self._obs:
+            return 0.0
+        # Find the nearest pit
+        distances = [np.linalg.norm(agent_pos - obs.pos) for obs in self._obs if obs.reward < 0]
+        if len(distances) == 0:
+            return 0.0
+        min_distance = min(distances)
+        return min_distance / (math.sqrt((self.width - 1) ** 2 + (self.height - 1) ** 2))  # Normalized distance to the nearest pit
+
+    def is_action_toward_goal(self, state, action):
+        """
+        Check if the action is toward the goal.
+        Utilizing the dot product of the action vector and the difference between the goal and the current state (as a vector).
+        """
+        x, y = state
+        dx, dy = _ACTION_VECS[action][0], _ACTION_VECS[action][1]
+        gx, gy = self.goal_x, self.goal_y
+
+        to_goal_vec = np.array([gx - x, gy - y])
+        action_vec = np.array([dx, dy])
+
+        if np.linalg.norm(to_goal_vec) == 0:
+            return 1  # We're already at the goal
+
+        # Note that a*b = |a||b|cos(theta) - and we want theta to be small (between 0 and 45 degrees)
+        # Compute the dot product
+        dot_prod = np.dot(to_goal_vec, action_vec)
+        # Compute the magnitudes
+        mag_prod = np.linalg.norm(to_goal_vec) * np.linalg.norm(action_vec) + 1e-8 # avoid division by zero
+        # Compute the cosine similarity
+        cos_theta = dot_prod / mag_prod
+        # Check if the action is toward the goal
+        if cos_theta > 0.7:  # Adjust threshold as needed - if cos(theta) > 0.7, then theta is between 0 and 45 degrees
+            return 1
+        else:
+            return 0
+
     def feature_vector(self, state, action):
         """
         Returns the feature vector for a given state and action.
@@ -164,9 +211,22 @@ class ContinuousGridWorldMDP(MDP):
         """
         # Example feature vector: [x, y, action]
         assert self.goal_x is not None and self.goal_y is not None, "Goal position must be set before calculating feature vector."
-        goal_distance = self.normalize_distance(state)
+        x, y = state
+        distance_to_goal = self.normalize_distance(state)
+        inv_goal_dist = 1 / (distance_to_goal + 1e-5)  # Big value near goal
+        distance_to_pit = self.normalize_distance_to_nearest_pit(state)
+        toward_goal = int(self.is_action_toward_goal(state, action))
         action_vec = _ACTION_VECS[action]
-        return np.array([state[0], state[1], *action_vec, state[0]/self.width, state[1]/self.height, goal_distance])
+        return np.array([
+            distance_to_goal,
+            inv_goal_dist,
+            distance_to_pit,
+            toward_goal,
+            x / self.width,
+            y / self.height,
+            action_vec[0],
+            action_vec[1]
+        ])
 
     def display(self, states, policy_algorithm=None):
         """
