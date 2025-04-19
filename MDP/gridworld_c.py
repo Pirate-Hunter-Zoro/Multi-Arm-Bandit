@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+import math
 from MDP.mdp import MDP
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,6 +19,12 @@ _VEC = {
     Actions.RIGHT: np.array([1, 0])
 }
 
+_ACTION_VECS = {
+    Actions.UP: np.array([1, 0, 0, 0]),
+    Actions.DOWN: np.array([0, 1, 0, 0]),
+    Actions.LEFT: np.array([0, 0, 1, 0]),
+    Actions.RIGHT: np.array([0, 0, 0, 1])
+}
 
 def _clip(p, max_x, max_y):
     p = np.array([max(min(p[0], max_x), 0),
@@ -140,6 +147,26 @@ class ContinuousGridWorldMDP(MDP):
         if self.in_walls(next_state): # Bounce back
             return state, self.r(state, state)
         return next_state, self.r(state, next_state)
+    
+    def compute_distance(self, agent_pos):
+        x_agent, y_agent = agent_pos
+        return math.sqrt((x_agent - self.goal_x) ** 2 + (y_agent - self.goal_y) ** 2)
+
+    def normalize_distance(self, agent_pos):
+        max_distance = math.sqrt((self.width - 1) ** 2 + (self.height - 1) ** 2)
+        distance = self.compute_distance(agent_pos)
+        return distance / max_distance  # Normalized distance in the range [0, 1]
+
+    def feature_vector(self, state, action):
+        """
+        Returns the feature vector for a given state and action.
+        The feature vector is a list of features that represent the state-action pair.
+        """
+        # Example feature vector: [x, y, action]
+        assert self.goal_x is not None and self.goal_y is not None, "Goal position must be set before calculating feature vector."
+        goal_distance = self.normalize_distance(state)
+        action_vec = _ACTION_VECS[action]
+        return np.array([state[0], state[1], *action_vec, state[0]/self.width, state[1]/self.height, goal_distance])
 
     def display(self, states, policy_algorithm=None):
         """

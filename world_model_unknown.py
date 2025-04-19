@@ -1,3 +1,4 @@
+from Algorithms.approximate_q_learning import run_approximate_q_learning
 from Algorithms.q_learning import run_q_learning
 from MDP.gridworld_c import ContinuousGridWorldMDP
 
