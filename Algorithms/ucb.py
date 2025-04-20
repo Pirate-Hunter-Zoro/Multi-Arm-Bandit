@@ -16,11 +16,14 @@ def ucb_algorithm(bandit_sim, num_episodes=1000):
     """
     # Keep track of the following heuristic for each arm: 
     # (mean reward) + (exploration bonus)
+    best_arm = -1
+    highest_mean_payout = float('-inf')
     heuristic = lambda num_pulls, gained_from_arm, total_pulls: gained_from_arm / num_pulls + math.sqrt(2 * math.log(total_pulls) / num_pulls)
     payouts = []
     arm_pull_counts = []
     sequential_payoffs = []
     sequential_individual_payoffs = []
+    regret = []
     chosen_arms = []
     total_pulls = 0
     total_reward = 0
@@ -34,7 +37,12 @@ def ucb_algorithm(bandit_sim, num_episodes=1000):
         arm_pull_counts.append(1)
         total_pulls += 1
         chosen_arms.append(i)
-    
+        # Update the best arm if necessary
+        if payouts[i] > highest_mean_payout:
+            highest_mean_payout = payouts[i]
+            best_arm = i
+        regret.append(bandit_sim.pull_arm(best_arm)-payouts[i])
+        
     arm_heap = Heap(lambda arm_1, arm_2: heuristic(arm_pull_counts[arm_1], payouts[arm_1], total_pulls) > heuristic(arm_pull_counts[arm_2], payouts[arm_2], total_pulls))
     arms = [i for i in range(bandit_sim.n_arms)]
     arm_heap.heapify(arms)
@@ -55,8 +63,14 @@ def ucb_algorithm(bandit_sim, num_episodes=1000):
         # Store the sequential payoffs
         sequential_payoffs.append(total_reward)
         chosen_arms.append(arm)
+        # Update the best arm if necessary
+        if payouts[arm] > highest_mean_payout:
+            highest_mean_payout = payouts[arm]
+            best_arm = arm
+        # Update the regret
+        regret.append(bandit_sim.pull_arm(best_arm)-payout)
 
-    return sequential_individual_payoffs, sequential_payoffs, chosen_arms
+    return sequential_individual_payoffs, sequential_payoffs, chosen_arms, regret
 
 
 def epsilon_greedy_algorithm(bandit_sim, num_episodes=1000, epsilon=0.1):
@@ -76,6 +90,7 @@ def epsilon_greedy_algorithm(bandit_sim, num_episodes=1000, epsilon=0.1):
     best_arm = -1
     individual_payoffs = []
     cumulative_payoffs = []
+    regret = []
     chosen_arms = []
     total_reward = 0
     arm_rewards = [0] * bandit_sim.n_arms
@@ -92,6 +107,7 @@ def epsilon_greedy_algorithm(bandit_sim, num_episodes=1000, epsilon=0.1):
         if arm_rewards[i] / arm_counts[i] > highest_mean_payout:
             highest_mean_payout = arm_rewards[i] / arm_counts[i]
             best_arm = i
+        regret.append(bandit_sim.pull_arm(best_arm)-payout)
         chosen_arms.append(i)
 
     # Now we can start the algorithm
@@ -116,10 +132,13 @@ def epsilon_greedy_algorithm(bandit_sim, num_episodes=1000, epsilon=0.1):
         if arm_rewards[arm] / arm_counts[arm] > highest_mean_payout:
             highest_mean_payout = arm_rewards[arm] / arm_counts[arm]
             best_arm = arm
+
+        # Update the regret
+        regret.append(bandit_sim.pull_arm(best_arm)-payout)
         
         chosen_arms.append(arm)
 
-    return individual_payoffs, cumulative_payoffs, chosen_arms
+    return individual_payoffs, cumulative_payoffs, chosen_arms, regret
 
 
 def random_algorithm(bandit_sim, num_episodes=1000):
@@ -134,9 +153,12 @@ def random_algorithm(bandit_sim, num_episodes=1000):
     """
     # Keep track of the following heuristic for each arm: 
     # (mean reward) + (exploration bonus)
+    highest_mean_payout = float('-inf')
+    best_arm = -1
     payouts = []
     sequential_payoffs = []
     sequential_individual_payoffs = []
+    regret = []
     chosen_arms = []
     total_reward = 0
 
@@ -147,6 +169,12 @@ def random_algorithm(bandit_sim, num_episodes=1000):
         sequential_payoffs.append(total_reward)
         sequential_individual_payoffs.append(payouts[i])
         chosen_arms.append(i)
+        # Update the best arm if necessary
+        if payouts[i] > highest_mean_payout:
+            highest_mean_payout = payouts[i]
+            best_arm = i
+        # Update the regret
+        regret.append(bandit_sim.pull_arm(best_arm)-payouts[i])
 
     # Now we can start the algorithm
     for _ in range(num_episodes):
@@ -159,11 +187,17 @@ def random_algorithm(bandit_sim, num_episodes=1000):
         # Store the sequential payoffs
         sequential_payoffs.append(total_reward)
         chosen_arms.append(arm)
+        # Update the best arm if necessary
+        if payouts[arm] > highest_mean_payout:
+            highest_mean_payout = payouts[arm]
+            best_arm = arm
+        # Update the regret
+        regret.append(bandit_sim.pull_arm(best_arm)-payout)
 
-    return sequential_individual_payoffs, sequential_payoffs, chosen_arms
+    return sequential_individual_payoffs, sequential_payoffs, chosen_arms, regret
 
 
-def plot_results(first_individual, first_cumulative, first_chosen, second_individual, second_cumulative, second_chosen, first_method, second_method):
+def plot_results(first_individual, first_cumulative, first_chosen, first_regret, second_individual, second_cumulative, second_chosen, second_regret, first_method, second_method):
     """
     Plot the results of the UCB and random algorithms.
     """
@@ -171,7 +205,7 @@ def plot_results(first_individual, first_cumulative, first_chosen, second_indivi
 
     time_steps = range(len(first_individual))
 
-    _, axes = plt.subplots(nrows=3, ncols=1, figsize=(12, 8), sharex=True)
+    _, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 8), sharex=True)
 
     # ---- Top Plot: Individual Payoffs ----
     axes[0].plot(time_steps, first_individual, label=first_method, color='blue')
@@ -181,7 +215,7 @@ def plot_results(first_individual, first_cumulative, first_chosen, second_indivi
     axes[0].legend()
     axes[0].grid(True)
 
-    # ---- Middle Plot: Cumulative Payoffs ----
+    # ---- Next Plot: Cumulative Payoffs ----
     axes[1].plot(time_steps, first_cumulative, label=first_method, color='blue')
     axes[1].plot(time_steps, second_cumulative, label=second_method, color='orange', linestyle='--')
     axes[1].set_ylabel('Cumulative Payoff')
@@ -189,14 +223,22 @@ def plot_results(first_individual, first_cumulative, first_chosen, second_indivi
     axes[1].legend()
     axes[1].grid(True)
 
-    # ---- Bottom Plot: Chosen Arms ----
+    # ---- Third Plot: Chosen Arms ----
     axes[2].scatter(time_steps, first_chosen, label=first_method, color='blue', marker='o')
     axes[2].scatter(time_steps, second_chosen, label=second_method, color='orange', marker='x')
-    axes[2].set_xlabel('Time Step')
     axes[2].set_ylabel('Chosen Arm')
     axes[2].set_title('Chosen Arm Over Time')
     axes[2].legend()
     axes[2].grid(True)
+
+    # ---- Bottom Plot: Regret ----
+    axes[3].plot(time_steps, first_regret, label=first_method, color='blue')
+    axes[3].plot(time_steps, second_regret, label=second_method, color='orange', linestyle='--')
+    axes[3].set_xlabel('Time Step')
+    axes[3].set_ylabel('Regret')
+    axes[3].set_title('Regret Over Time')
+    axes[3].legend()
+    axes[3].grid(True)
 
     plt.tight_layout()
     plt.savefig(f'Results/multi_arm_bandit_{first_method}_vs_{second_method}.png')
