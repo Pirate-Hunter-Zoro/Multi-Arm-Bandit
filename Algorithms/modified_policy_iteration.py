@@ -16,9 +16,9 @@ def modified_policy_iteration(env, gamma=0.9):
 
     Repeat until convergence (policy doesn't change):
         # Step 1: Policy Evaluation (Modified)
-        For each state s in the state space:
-            # Perform a limited number of steps of evaluation (in practice this could be a few iterations)
-            For i = 1 to num_eval_steps:
+        # Perform a limited number of steps of evaluation (in practice this could be a few iterations)
+        For i = 1 to num_eval_steps:
+            For each state s in the state space:
                 V(s) = Σ P(s'|s, π(s)) * [R(s, π(s), s') + γ * V(s')]  # Bellman update for the value function
 
         # Step 2: Policy Improvement

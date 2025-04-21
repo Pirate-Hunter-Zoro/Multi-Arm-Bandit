@@ -22,12 +22,12 @@ def value_iteration(env: FiniteStateMDP, gamma=0.9, theta=1e-6):
         Δ ← 0
         For each state s ∈ S:
             v ← V(s)
-            V(s) ← max_a ∑_s',r [ P(s', r | s, a) * (r + γ * V(s')) ]
+            V(s) ← max_a ∑_s'[ P(s' | s, a) * (r(s,a,s') + γ * V(s')) ]
             Δ ← max(Δ, |v - V(s)|)
 
     # Derive policy π from the final value function
     For each state s ∈ S:
-        π(s) ← argmax_a ∑_s',r [ P(s', r | s, a) * (r + γ * V(s')) ]
+        π(s) ← argmax_a ∑_s' [ P(s', r | s, a) * (r(s,a,s') + γ * V(s')) ]
     """
     # Calling .i on a state returns a unique (hashable) index associated with it
     V = {s.i: float('-inf') if not env.is_terminal(s) else 0 for s in env.states}
