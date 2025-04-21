@@ -12,8 +12,8 @@ class LinearQTablePolicy:
         If no actions are available, return None.
         """
         features = [self.env.feature_vector(state, action) for action in self.env.actions_at(state)]
-        q_values = [np.dot(self.theta, f) for f in features]
-        best_action = self.env.actions[np.argmax(q_values)]
+        q_values = [np.dot(self.theta, f) for f in features] # Dot product of theta and feature vector representing the state/action pair, FOR ALL such actions that can go with the state
+        best_action = self.env.actions[np.argmax(q_values)] # Pick the action that yields the highest dot product
         return best_action
 
 def approximate_q_learning(env, num_episodes=1000, alpha=0.1, gamma=0.9, epsilon=1):
